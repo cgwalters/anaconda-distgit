@@ -1,0 +1,46 @@
+From 56e9779abec39371d1e50008d6b1bfddce70978b Mon Sep 17 00:00:00 2001
+From: Colin Walters <walters@verbum.org>
+Date: Fri, 9 Sep 2016 22:13:01 -0400
+Subject: [PATCH] rpmostreepayload: Fix remote handling to use correct sysroot
+
+I'm working on Atomic Workstation, and putting the ostree remote
+config into a package (same as CentOS is doing it), and this
+is the current recommendation.
+
+See
+https://github.com/rhinstaller/anaconda/pull/474
+for some previous discussion around this.
+
+Recently, this broke; we end up deleting the remote in the package,
+and the reason for this is we're using the *physical* sysroot rather
+than the target, which means we look at the wrong
+`/mnt/sysimage/etc/ostree/remotes.d`.
+
+What I don't yet know is *why* this broke - I have a suspicion it's
+related to some of the mount setup changes bcl did previously here,
+but anyways, this patch fixes things.
+---
+ pyanaconda/packaging/rpmostreepayload.py | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/pyanaconda/packaging/rpmostreepayload.py b/pyanaconda/packaging/rpmostreepayload.py
+index 7bf4fd0..16a5fce 100644
+--- a/pyanaconda/packaging/rpmostreepayload.py
++++ b/pyanaconda/packaging/rpmostreepayload.py
+@@ -292,10 +292,11 @@ class RPMOSTreePayload(ArchivePayload):
+         # However, we ignore the case where the remote already exists,
+         # which occurs when the content itself provides the remote
+         # config file.
+-        sysroot = OSTree.Sysroot.new(self._sysroot_path)
++        sysroot_path = Gio.File.new_for_path(iutil.getSysroot())
++        sysroot = OSTree.Sysroot.new(sysroot_path)
+         sysroot.load(cancellable)
+         repo = sysroot.get_repo(None)[1]
+-        repo.remote_change(Gio.File.new_for_path(iutil.getSysroot()),
++        repo.remote_change(sysroot_path,
+                            OSTree.RepoRemoteChange.ADD_IF_NOT_EXISTS,
+                            self.data.ostreesetup.remote, self.data.ostreesetup.url,
+                            GLib.Variant('a{sv}', self._remoteOptions),
+-- 
+2.7.4
+

@@ -3,7 +3,7 @@
 Summary: Graphical system installer
 Name:    anaconda
 Version: 25.20.1
-Release: 1%{?dist}
+Release: 99.atomic.0%{?dist}
 License: GPLv2+ and MIT
 Group:   Applications/System
 URL:     http://fedoraproject.org/wiki/Anaconda
@@ -14,6 +14,8 @@ URL:     http://fedoraproject.org/wiki/Anaconda
 # ./autogen.sh
 # make dist
 Source0: %{name}-%{version}.tar.bz2
+
+Patch0: 0001-rpmostreepayload-Fix-remote-handling-to-use-correct-.patch
 
 # Versions of required components (done so we make sure the buildrequires
 # match the requires versions of things).
@@ -231,6 +233,7 @@ runtime on NFS/HTTP/FTP servers or local disks.
 
 %prep
 %setup -q
+%patch0 -p1
 
 %build
 %configure
