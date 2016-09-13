@@ -1,0 +1,38 @@
+From 2e759c7fe9344e0a08e5d958a8d42b62925321e7 Mon Sep 17 00:00:00 2001
+From: Colin Walters <walters@verbum.org>
+Date: Sun, 11 Sep 2016 20:37:09 -0400
+Subject: [PATCH] screen_access: Ensure we write config to real sysroot
+
+The value of `iutil.getSysroot()` can change dynamically at
+least in the case of an ostree payload, but Python will only
+evaluate the default value once when the function is parsed.
+
+Change the default to `None`, and take `None` to mean "use current
+sysroot".
+---
+ pyanaconda/screen_access.py | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/pyanaconda/screen_access.py b/pyanaconda/screen_access.py
+index 03829b11..ba65b46 100644
+--- a/pyanaconda/screen_access.py
++++ b/pyanaconda/screen_access.py
+@@ -64,7 +64,7 @@ def open_config_file(self, config_path=CONFIG_FILE_PATH):
+                 with open(config_path, "rt") as f:
+                     self._config.read_file(f)
+ 
+-    def write_out_config_file(self, config_path=iutil.getSysroot() + CONFIG_FILE_PATH):
++    def write_out_config_file(self, config_path=None):
+         """Write the user interaction config file to persistent storage.
+         - we always read the config file from the top level filesystem, as:
+         -> on live media the file will be there
+@@ -77,6 +77,9 @@ def write_out_config_file(self, config_path=iutil.getSysroot() + CONFIG_FILE_PAT
+         -> therefore we always write the config file to the sysroot path
+         """
+ 
++        if config_path is None:
++            config_path = iutil.getSysroot() + CONFIG_FILE_PATH
++
+         with self._lock:
+             new_config_file = not os.path.exists(config_path)
+             with open(config_path, "wt") as f:
